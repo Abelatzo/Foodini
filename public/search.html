@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foodini - Búsqueda</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    #map { height: 500px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .search-bar {
+      display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .search-bar input {
+      flex: 1; padding: .75rem 1rem; border: 2px solid #ddd;
+      border-radius: 8px; font-size: 1rem; min-width: 200px;
+    }
+    .search-bar input:focus { outline: none; border-color: #e63946; }
+    .search-bar button {
+      padding: .75rem 1.5rem; background: #e63946; color: white;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-weight: 600; transition: background .2s;
+    }
+    .search-bar button:hover { background: #c1121f; }
+    .places-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem; margin-top: 1.5rem;
+    }
+    .place-card {
+      background: white; border-radius: 12px; padding: 1rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      display: flex; flex-direction: column; gap: .5rem;
+      transition: transform .2s;
+    }
+    .place-card:hover { transform: translateY(-3px); }
+    .place-card h4 { color: #e63946; font-size: 1rem; }
+    .place-card p { color: #666; font-size: .85rem; }
+    .place-card .rating { color: #f4a261; font-weight: 600; }
+    .place-card .open {
+      font-size: .8rem; font-weight: 600;
+      color: #2a9d8f;
+    }
+    .place-card .closed { color: #e63946; font-size: .8rem; font-weight: 600; }
+    .status-bar {
+      background: white; border-radius: 12px; padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
+    .status-bar span { color: #666; font-size: .95rem; }
+    .loader {
+      text-align: center; padding: 2rem; color: #999;
+      display: none;
+    }
+    .filter-btns { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .filter-btn {
+      padding: .5rem 1.2rem; border: 2px solid #e63946;
+      border-radius: 20px; background: white; color: #e63946;
+      cursor: pointer; font-weight: 500; transition: all .2s;
+    }
+    .filter-btn.active, .filter-btn:hover {
+      background: #e63946; color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="logo">🍔 Foodini</a>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="search.html">Búsqueda</a></li>
+      <li><a href="products.html">Productos</a></li>
+      <li><a href="about.html">Acerca de</a></li>
+      <li><a href="#" onclick="logout()">Cerrar sesión</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-container">
+    <h1 class="page-title">🗺️ Restaurantes Cercanos</h1>
+
+    <!-- Barra de estado -->
+    <div class="status-bar">
+      <span>📍</span>
+      <span id="locationStatus">Detectando tu ubicación...</span>
+    </div>
+
+    <!-- Búsqueda manual -->
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar restaurante o zona...">
+      <button onclick="searchByText()">🔍 Buscar</button>
+      <button onclick="centerOnUser()" style="background:#1d3557;">
+        📍 Mi ubicación
+      </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-btns">
+      <button class="filter-btn active" onclick="filterPlaces('restaurant', this)">🍽️ Restaurantes</button>
+      <button class="filter-btn" onclick="filterPlaces('meal_delivery', this)">🛵 Delivery</button>
+      <button class="filter-btn" onclick="filterPlaces('cafe', this)">☕ Cafés</button>
+      <button class="filter-btn" onclick="filterPlaces('bakery', this)">🥐 Panaderías</button>
+      <button class="filter-btn" onclick="filterPlaces('bar', this)">🍺 Bares</button>
+    </div>
+
+    <!-- Mapa -->
+    <div id="map"></div>
+
+    <!-- Loader -->
+    <div class="loader" id="loader">⏳ Buscando lugares cercanos...</div>
+
+    <!-- Lista de lugares -->
+    <div id="placesList" class="places-list"></div>
+
+  </div>
+
+  <script>
+    if (!localStorage.getItem('user')) window.location.href = 'login.html';
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+
+    const GOOGLE_KEY = 'AIzaSyBQlKigFzmF_abS9RLIb1BzIQHJgy0ziy8';
+    let map, userMarker, service, userLat, userLng;
+    let markers = [];
+
+    // Inicializar mapa
+    function initMap() {
+      const defaultPos = { lat: 31.6904, lng: -106.4245 }; // Ciudad Juárez
+
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: defaultPos,
+        zoom: 14,
+        styles: [
+          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+        ]
+      });
+
+      service = new google.maps.places.PlacesService(map);
+
+      // Geolocalización
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            userLat = pos.coords.latitude;
+            userLng = pos.coords.longitude;
+            centerOnUser();
+            searchNearby('restaurant');
+          },
+          () => {
+            userLat = defaultPos.lat;
+            userLng = defaultPos.lng;
+            document.getElementById('locationStatus').textContent =
+              '📍 Ciudad Juárez, Chihuahua (ubicación por defecto)';
+            searchNearby('restaurant');
+          }
+        );
+      }
+    }
+
+    // Centrar en usuario
+    function centerOnUser() {
+      const pos = { lat: userLat, lng: userLng };
+      map.setCenter(pos);
+      map.setZoom(15);
+
+      if (userMarker) userMarker.setMap(null);
+      userMarker = new google.maps.Marker({
+        position: pos,
+        map,
+        title: 'Tu ubicación',
+        icon: {
+          url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+        }
+      });
+    }
+
+    // Limpiar marcadores anteriores
+    function clearMarkers() {
+      markers.forEach(m => m.setMap(null));
+      markers = [];
+    }
+
+    // Buscar lugares cercanos
+    function searchNearby(type) {
+      clearMarkers();
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('placesList').innerHTML = '';
+
+      const request = {
+        location: new google.maps.LatLng(userLat, userLng),
+        radius: 2000,
+        type: type,
+        language: 'es'
+      };
+
+      service.nearbySearch(request, (results, status) => {
+        document.getElementById('loader').style.display = 'none';
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          document.getElementById('locationStatus').textContent =
+            `${results.length} lugares encontrados cerca de ti`;
+          showPlaces(results);
+        } else {
+          document.getElementById('locationStatus').textContent =
+            '⚠️o se encontraron lugares cercanos';
+        }
+      });
+    }
+
+    // Mostrar lugares en mapa y lista
+    function showPlaces(places) {
+      const list = document.getElementById('placesList');
+      list.innerHTML = '';
+
+      places.slice(0, 12).forEach((place, i) => {
+        // Marcador en el mapa
+        const marker = new google.maps.Marker({
+          position: place.geometry.location,
+          map,
+          title: place.name,
+          label: { text: String(i + 1), color: 'white' },
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 14,
+            fillColor: '#e63946',
+            fillOpacity: 1,
+            strokeColor: 'white',
+            strokeWeight: 2,
+            labelOrigin: new google.maps.Point(0, 0)
+          }
+        });
+
+        // InfoWindow
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div style="max-width:220px">
+              <strong>${place.name}</strong><br>
+              <span style="color:#f4a261">⭐ ${place.rating || 'Sin calificación'}</span><br>
+              <span style="color:#666;font-size:.85rem">${place.vicinity || ''}</span>
+            </div>
+          `
+        });
+        marker.addListener('click', () => infoWindow.open(map, marker));
+        markers.push(marker);
+
+        // Card en la lista
+        const isOpen = place.opening_hours?.open_now;
+        const card = document.createElement('div');
+        card.className = 'place-card';
+        card.innerHTML = `
+          <h4>${i + 1}. ${place.name}</h4>
+          <p>📍 ${place.vicinity || 'Dirección no disponible'}</p>
+          <div class="rating">⭐ ${place.rating || 'N/A'}
+            <span style="color:#999;font-weight:400;font-size:.8rem">
+              (${place.user_ratings_total || 0} reseñas)
+            </span>
+          </div>
+          ${isOpen !== undefined
+            ? `<span class="${isOpen ? 'open' : 'closed'}">
+                ${isOpen ? 'Abierto ahora' : 'Cerrado'}
+               </span>`
+            : ''}
+          <button onclick="focusPlace(${place.geometry.location.lat()}, ${place.geometry.location.lng()}, ${i})"
+            style="margin-top:.5rem; padding:.4rem .8rem; background:#e63946;
+                   color:white; border:none; border-radius:6px; cursor:pointer; font-size:.85rem;">
+            Ver en mapa
+          </button>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    // Enfocar lugar en el mapa
+    function focusPlace(lat, lng, index) {
+      map.setCenter({ lat, lng });
+      map.setZoom(17);
+      google.maps.event.trigger(markers[index], 'click');
+    }
+
+    // Filtrar por tipo
+    function filterPlaces(type, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      searchNearby(type);
+    }
+
+    // Buscar por texto
+    function searchByText() {
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) return;
+      clearMarkers();
+      document.getElementById('loader').style.display = 'block';
+
+      const request = {
+        query: query,
+        location: new google.maps.LatLng(userLat, userLng),
+        radius: 5000,
+        language: 'es'
+      };
+
+      service.textSearch(request, (results, status) => {
+        document.getElementById('loader').style.display = 'none';
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          document.getElementById('locationStatus').textContent =
+            `🔍 ${results.length} resultados para "${query}"`;
+          showPlaces(results);
+        }
+      });
+    }
+
+    // Enter para buscar
+    document.getElementById('searchInput')
+      .addEventListener('keypress', e => { if (e.key === 'Enter') searchByText(); });
+  </script>
+
+  <!-- Cargar Google Maps -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBQlKigFzmF_abS9RLIb1BzIQHJgy0ziy8&libraries=places&callback=initMap" async defer></script>
+
+</body>
+</html>

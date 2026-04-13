@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foodini - Inicio</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- NAVEGACIÓN -->
+  <nav>
+    <a href="index.html" class="logo">🍔 Foodini</a>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="search.html">Búsqueda</a></li>
+      <li><a href="products.html">Productos</a></li>
+      <li><a href="about.html">Acerca de</a></li>
+      <li><a href="#" onclick="logout()">Cerrar sesión</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-container">
+
+    <!-- SALUDO -->
+    <h1 class="page-title" id="greeting">👋 Bienvenido a Foodini</h1>
+    <p style="color:#666; margin-bottom:1.5rem;">
+      Encuentra los mejores restaurantes y comida cerca de ti
+    </p>
+
+    <!-- WIDGET DE CLIMA -->
+    <div class="weather-widget" id="weatherWidget">
+      <div style="font-size:3rem" id="weatherIcon">⏳</div>
+      <div>
+        <div class="temp" id="weatherTemp">Cargando...</div>
+        <div class="desc" id="weatherDesc">Obteniendo clima</div>
+        <div class="city" id="weatherCity">📍 Detectando ubicación...</div>
+      </div>
+      <div style="margin-left:auto; text-align:right;">
+        <div style="font-size:.9rem; opacity:.8" id="weatherHumidity"></div>
+        <div style="font-size:.9rem; opacity:.8" id="weatherWind"></div>
+        <div style="font-size:1rem; margin-top:.5rem; font-weight:600" id="weatherSuggestion"></div>
+      </div>
+    </div>
+
+    <!-- OFERTA DEL DÍA SEGÚN CLIMA -->
+    <div id="offerBanner" style="display:none; background:#fff3cd; border-left:4px solid #e63946;
+         padding:1rem 1.5rem; border-radius:8px; margin-bottom:2rem;">
+      <strong>🔥 Oferta del día:</strong> <span id="offerText"></span>
+    </div>
+
+    <!-- ACCESOS RÁPIDOS -->
+    <h2 style="margin-bottom:1rem; color:#333;">¿Qué buscas hoy?</h2>
+    <div class="cards-grid">
+      <div class="card" style="cursor:pointer" onclick="window.location.href='search.html'">
+        <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400" alt="Restaurantes">
+        <div class="card-body">
+          <h3>🗺️ Restaurantes Cercanos</h3>
+          <p>Encuentra los mejores lugares para comer cerca de tu ubicación actual.</p>
+          <button class="btn-card">Explorar mapa</button>
+        </div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="window.location.href='products.html'">
+        <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400" alt="Combos">
+        <div class="card-body">
+          <h3>🍔 Nuestros Combos</h3>
+          <p>Descubre nuestros combos, membresías premium y paquetes de catering.</p>
+          <button class="btn-card">Ver productos</button>
+        </div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="window.location.href='about.html'">
+        <img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400" alt="Nosotros">
+        <div class="card-body">
+          <h3>🏢 Acerca de Foodini</h3>
+          <p>Conoce nuestra historia, misión y cómo contactarnos.</p>
+          <button class="btn-card">Conocernos</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const OPENWEATHER_KEY = 'OPENWEATHER_API_KEY';
+
+    // Verificar sesión
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) window.location.href = 'login.html';
+    else document.getElementById('greeting').textContent = `👋 Hola, ${user.name}`;
+
+    // Logout
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+
+    // Iconos según clima
+    function getWeatherIcon(main) {
+      const icons = {
+        'Clear': '☀️', 'Clouds': '☁️', 'Rain': '🌧️',
+        'Drizzle': '🌦️', 'Thunderstorm': '⛈️',
+        'Snow': '❄️', 'Mist': '🌫️', 'Fog': '🌫️'
+      };
+      return icons[main] || '🌡️';
+    }
+
+    // Oferta según clima
+    function getOffer(main, temp) {
+      if (main === 'Rain' || main === 'Thunderstorm')
+        return '🌧️ Día de lluvia: 20% de descuento en delivery a domicilio. ¡No salgas!';
+      if (temp > 30)
+        return '🥵 Mucho calor: Aguas frescas y helados incluidos en tu combo hoy.';
+      if (temp < 15)
+        return '🥶 Día frío: Sopas y bebidas calientes con 15% de descuento.';
+      if (main === 'Clear')
+        return '☀️ Hermoso día: Visita uno de nuestros restaurantes asociados y obtén una bebida gratis.';
+      return '🍔 Hoy todos los combos tienen envío gratis.';
+    }
+
+    // Obtener clima
+    function getWeather(lat, lon) {
+      fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_KEY}&units=metric&lang=es`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.cod !== 200) {
+            document.getElementById('weatherTemp').textContent = 'No disponible';
+            return;
+          }
+          const temp = Math.round(data.main.temp);
+          const desc = data.weather[0].description;
+          const main = data.weather[0].main;
+          const city = data.name;
+          const humidity = data.main.humidity;
+          const wind = Math.round(data.wind.speed * 3.6);
+
+          document.getElementById('weatherIcon').textContent = getWeatherIcon(main);
+          document.getElementById('weatherTemp').textContent = `${temp}°C`;
+          document.getElementById('weatherDesc').textContent =
+            desc.charAt(0).toUpperCase() + desc.slice(1);
+          document.getElementById('weatherCity').textContent = `📍 ${city}`;
+          document.getElementById('weatherHumidity').textContent = `💧 Humedad: ${humidity}%`;
+          document.getElementById('weatherWind').textContent = `💨 Viento: ${wind} km/h`;
+
+          const offer = getOffer(main, temp);
+          document.getElementById('offerText').textContent = offer;
+          document.getElementById('offerBanner').style.display = 'block';
+
+          let suggestion = '';
+          if (main === 'Rain' || main === 'Thunderstorm') suggestion = '🏠 Pide delivery';
+          else if (temp > 28) suggestion = '❄️ Pide algo fresco';
+          else suggestion = '🍽️ ¡Buen día para salir!';
+          document.getElementById('weatherSuggestion').textContent = suggestion;
+        })
+        .catch(() => {
+          document.getElementById('weatherTemp').textContent = 'Sin datos';
+        });
+    }
+
+    // Geolocalización
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => getWeather(pos.coords.latitude, pos.coords.longitude),
+        () => {
+          // Si niega permisos, usar coordenadas de Ciudad Juárez
+          getWeather(31.6904, -106.4245);
+        }
+      );
+    } else {
+      getWeather(31.6904, -106.4245);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foodini - Productos</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .badge {
+      display: inline-block; padding: .25rem .75rem;
+      border-radius: 20px; font-size: .75rem; font-weight: 600;
+      margin-bottom: .75rem;
+    }
+    .badge-combo    { background: #fff3cd; color: #856404; }
+    .badge-catering { background: #d1ecf1; color: #0c5460; }
+    .badge-premium  { background: #f8d7da; color: #721c24; }
+
+    .success-banner, .cancel-banner {
+      padding: 1rem 1.5rem; border-radius: 10px;
+      margin-bottom: 1.5rem; display: none; font-weight: 500;
+    }
+    .success-banner { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+    .cancel-banner  { background: #f8d7da; color: #721c24; border-left: 4px solid #e63946; }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: white; border-radius: 16px; padding: 2rem;
+      max-width: 440px; width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .modal img {
+      width: 100%; height: 180px; object-fit: cover;
+      border-radius: 10px; margin-bottom: 1rem;
+    }
+    .modal h3 { color: #e63946; margin-bottom: .5rem; font-size: 1.3rem; }
+    .modal p  { color: #555; font-size: .9rem; margin-bottom: 1rem; }
+    .modal .total {
+      font-size: 1.5rem; font-weight: bold;
+      color: #e63946; margin-bottom: 1.2rem;
+    }
+    .modal-btns { display: flex; gap: 1rem; }
+    .btn-cancel-modal {
+      flex: 1; padding: .75rem; background: #eee;
+      border: none; border-radius: 8px;
+      cursor: pointer; font-weight: 600; font-size: 1rem;
+    }
+    .btn-pay {
+      flex: 2; padding: .75rem; background: #e63946;
+      color: white; border: none; border-radius: 8px;
+      cursor: pointer; font-weight: 600; font-size: 1rem;
+      transition: background .2s;
+    }
+    .btn-pay:hover { background: #c1121f; }
+    .btn-pay:disabled { background: #ccc; cursor: not-allowed; }
+
+    .card-img-wrap { position: relative; }
+    .card-img-wrap .badge {
+      position: absolute; top: .75rem; left: .75rem;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="logo">🍔 Foodini</a>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="search.html">Búsqueda</a></li>
+      <li><a href="products.html">Productos</a></li>
+      <li><a href="about.html">Acerca de</a></li>
+      <li><a href="#" onclick="logout()">Cerrar sesión</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-container">
+    <h1 class="page-title">🍔 Nuestros Productos</h1>
+    <p style="color:#666; margin-bottom:1.5rem;">
+      Selecciona un combo, membresía o paquete y realiza tu pedido fácilmente.
+    </p>
+
+    <!-- Banners de estado de pago -->
+    <div class="success-banner" id="successBanner">
+      ¡Pago realizado con éxito! Tu pedido está en camino. Gracias por elegir FoodNear 🎉
+    </div>
+    <div class="cancel-banner" id="cancelBanner">
+      ⚠️ago cancelado. Puedes intentarlo de nuevo cuando quieras.
+    </div>
+
+    <!-- Catálogo -->
+    <div class="cards-grid" id="productsGrid">
+      <div style="text-align:center; padding:3rem; color:#999; grid-column:1/-1;">
+        ⏳ Cargando productos...
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de confirmación -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <img id="modalImg" src="" alt="">
+      <h3 id="modalName"></h3>
+      <p id="modalDesc"></p>
+      <div class="total">💰 Total: $<span id="modalPrice"></span> MXN</div>
+      <p style="font-size:.8rem; color:#999; margin-bottom:1rem;">
+        🔒 Pago seguro procesado por Stripe.<br>
+        Usa la tarjeta de prueba: <strong>4242 4242 4242 4242</strong>
+      </p>
+      <div class="modal-btns">
+        <button class="btn-cancel-modal" onclick="closeModal()">Cancelar</button>
+        <button class="btn-pay" id="btnPay" onclick="processPayment()">
+          💳 Pagar ahora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (!localStorage.getItem('user')) window.location.href = 'login.html';
+
+    const user = JSON.parse(localStorage.getItem('user'));
+    let selectedProduct = null;
+
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+
+    // Mostrar banner según resultado de pago
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('status') === 'success') {
+      document.getElementById('successBanner').style.display = 'block';
+      window.history.replaceState({}, '', 'products.html');
+    }
+    if (params.get('status') === 'cancel') {
+      document.getElementById('cancelBanner').style.display = 'block';
+      window.history.replaceState({}, '', 'products.html');
+    }
+
+    // Badge según categoría
+    function getBadge(category) {
+      const badges = {
+        'combo':    '<span class="badge badge-combo">🍔 Combo</span>',
+        'catering': '<span class="badge badge-catering">🍽️ Catering</span>',
+        'premium':  '<span class="badge badge-premium">⭐ Premium</span>'
+      };
+      return badges[category] || '<span class="badge badge-combo">🍴 Producto</span>';
+    }
+
+    // Cargar productos desde Firebase
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/products');
+        const products = await res.json();
+        const grid = document.getElementById('productsGrid');
+        grid.innerHTML = '';
+
+        products.forEach(product => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div class="card-img-wrap">
+              <img src="${product.image}" alt="${product.name}"
+                   onerror="this.src='https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'">
+              ${getBadge(product.category)}
+            </div>
+            <div class="card-body">
+              <h3>${product.name}</h3>
+              <p>${product.description}</p>
+              <div class="card-price">$${product.price} MXN</div>
+              <button class="btn-card" onclick='openModal(${JSON.stringify(product)})'>
+                🛒 Ordenar ahora
+              </button>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+
+      } catch (error) {
+        document.getElementById('productsGrid').innerHTML =
+          '<p style="color:red; grid-column:1/-1">Error al cargar productos.</p>';
+      }
+    }
+
+    // Abrir modal de confirmación
+    function openModal(product) {
+      selectedProduct = product;
+      document.getElementById('modalImg').src   = product.image;
+      document.getElementById('modalName').textContent = product.name;
+      document.getElementById('modalDesc').textContent = product.description;
+      document.getElementById('modalPrice').textContent = product.price;
+      document.getElementById('btnPay').disabled = false;
+      document.getElementById('btnPay').textContent = '💳 Pagar ahora';
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+      selectedProduct = null;
+    }
+
+    // Procesar pago con Stripe
+    async function processPayment() {
+      if (!selectedProduct) return;
+      const btn = document.getElementById('btnPay');
+      btn.disabled = true;
+      btn.textContent = '⏳ Procesando...';
+
+      try {
+        const res = await fetch('/api/payment/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId:   selectedProduct.id,
+            productName: selectedProduct.name,
+            amount:      selectedProduct.price,
+            userId:      user.uid
+          })
+        });
+        const data = await res.json();
+
+        if (data.url) {
+          window.location.href = data.url; // Redirige a Stripe Checkout
+        } else {
+          alert('Error al procesar el pago: ' + (data.error || 'Intenta de nuevo'));
+          btn.disabled = false;
+          btn.textContent = '💳 Pagar ahora';
+        }
+      } catch (e) {
+        alert('Error de conexión');
+        btn.disabled = false;
+        btn.textContent = '💳 Pagar ahora';
+      }
+    }
+
+    // Cerrar modal al click fuera
+    document.getElementById('modalOverlay')
+      .addEventListener('click', e => {
+        if (e.target === document.getElementById('modalOverlay')) closeModal();
+      });
+
+    loadProducts();
+  </script>
+
+</body>
+</html>

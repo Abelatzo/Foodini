@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foodini - Acerca de</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .about-hero {
+      background: linear-gradient(135deg, #e63946, #c1121f);
+      color: white; border-radius: 16px;
+      padding: 3rem 2rem; text-align: center;
+      margin-bottom: 2rem;
+    }
+    .about-hero h2 { font-size: 2.5rem; margin-bottom: .5rem; }
+    .about-hero p  { font-size: 1.1rem; opacity: .9; max-width: 600px; margin: 0 auto; }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem; margin-bottom: 2rem;
+    }
+    .about-box {
+      background: white; border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .about-box h3 { color: #e63946; margin-bottom: 1rem; font-size: 1.2rem; }
+    .contact-item {
+      display: flex; align-items: center;
+      gap: .75rem; margin-bottom: .85rem;
+      color: #555; font-size: .95rem;
+    }
+    .contact-item span:first-child { font-size: 1.3rem; }
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem; margin-top: 1rem;
+    }
+    .team-card {
+      text-align: center; padding: 1rem;
+      background: #f9f9f9; border-radius: 12px;
+    }
+    .team-card .avatar {
+      font-size: 2.5rem; margin-bottom: .5rem;
+    }
+    .team-card h4 { font-size: .9rem; color: #333; margin-bottom: .25rem; }
+    .team-card p  { font-size: .8rem; color: #999; }
+    .values-list { list-style: none; }
+    .values-list li {
+      padding: .6rem 0; border-bottom: 1px solid #f0f0f0;
+      color: #555; font-size: .95rem;
+    }
+    .values-list li:last-child { border-bottom: none; }
+    #mapAbout {
+      height: 380px; border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 768px) {
+      .about-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="logo">🍔 Foodini</a>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="search.html">Búsqueda</a></li>
+      <li><a href="products.html">Productos</a></li>
+      <li><a href="about.html">Acerca de</a></li>
+      <li><a href="#" onclick="logout()">Cerrar sesión</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-container">
+
+    <!-- HERO -->
+    <div class="about-hero">
+      <div style="font-size:3rem; margin-bottom:.75rem;">🍔</div>
+      <h2>Foodini</h2>
+      <p>Conectamos personas con los mejores restaurantes y comida cerca de ellos,
+         de forma rápida, sencilla y confiable.</p>
+    </div>
+
+    <!-- GRID INFO -->
+    <div class="about-grid">
+
+      <!-- Contacto -->
+      <div class="about-box">
+        <h3>📞 Datos de Contacto</h3>
+        <div class="contact-item">
+          <span>📍</span>
+          <span>Av. Tecnológico 1234, Col. Centro<br>Ciudad Juárez, Chihuahua, México</span>
+        </div>
+        <div class="contact-item">
+          <span>📱</span>
+          <span>+52 (656) 123-4567</span>
+        </div>
+        <div class="contact-item">
+          <span>📧</span>
+          <span>contacto@foodini.mx</span>
+        </div>
+        <div class="contact-item">
+          <span>🌐</span>
+          <span>www.foodini.mx</span>
+        </div>
+        <div class="contact-item">
+          <span>🕐</span>
+          <span>Lunes a Domingo: 8:00am – 10:00pm</span>
+        </div>
+      </div>
+
+      <!-- Misión y Valores -->
+      <div class="about-box">
+        <h3>🎯 Misión y Valores</h3>
+        <p style="color:#555; font-size:.9rem; margin-bottom:1rem;">
+          Nuestra misión es facilitar el acceso a la mejor comida local,
+          apoyando a restaurantes y negocios de la región mediante tecnología
+          accesible e innovadora.
+        </p>
+        <ul class="values-list">
+          <li>✅ Calidad garantizada en cada pedido</li>
+          <li>🚀 Entregas rápidas y confiables</li>
+          <li>🤝 Apoyo a negocios locales</li>
+          <li>🔒 Pagos 100% seguros</li>
+          <li>🌱 Compromiso con la comunidad</li>
+        </ul>
+      </div>
+
+      <!-- Equipo -->
+      <div class="about-box">
+        <h3>👥 Nuestro Equipo</h3>
+        <div class="team-grid">
+          <div class="team-card">
+            <div class="avatar">👨‍💼</div>
+            <h4>Abel</h4>
+            <p>CEO & Fundador</p>
+          </div>
+          <div class="team-card">
+            <div class="avatar">👩‍💻</div>
+            <h4>Natalia</h4>
+            <p>Dev Lead</p>
+          </div>
+          <div class="team-card">
+            <div class="avatar">👨‍🍳</div>
+            <h4>David</h4>
+            <p>Chef Consultor</p>
+          </div>
+          <div class="team-card">
+            <div class="avatar">👩‍🎨</div>
+            <h4>Itzuri</h4>
+            <p>UX Designer</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="about-box">
+        <h3>📊 Foodini en Números</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.5rem;">
+          <div style="text-align:center; padding:1rem; background:#fff5f5; border-radius:10px;">
+            <div style="font-size:2rem; font-weight:bold; color:#e63946;">+500</div>
+            <div style="font-size:.85rem; color:#666;">Restaurantes</div>
+          </div>
+          <div style="text-align:center; padding:1rem; background:#fff5f5; border-radius:10px;">
+            <div style="font-size:2rem; font-weight:bold; color:#e63946;">+10K</div>
+            <div style="font-size:.85rem; color:#666;">Usuarios activos</div>
+          </div>
+          <div style="text-align:center; padding:1rem; background:#fff5f5; border-radius:10px;">
+            <div style="font-size:2rem; font-weight:bold; color:#e63946;">+50K</div>
+            <div style="font-size:.85rem; color:#666;">Pedidos realizados</div>
+          </div>
+          <div style="text-align:center; padding:1rem; background:#fff5f5; border-radius:10px;">
+            <div style="font-size:2rem; font-weight:bold; color:#e63946;">4.8⭐</div>
+            <div style="font-size:.85rem; color:#666;">Calificación</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MAPA DE LA EMPRESA -->
+    <h2 style="margin-bottom:1rem; color:#333;">📍 Nuestra Ubicación</h2>
+    <div id="mapAbout"></div>
+
+  </div>
+
+  <script>
+    if (!localStorage.getItem('user')) window.location.href = 'login.html';
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+
+    function initMapAbout() {
+      // Coordenadas de Ciudad Juárez centro
+      const empresa = { lat: 31.6904, lng: -106.4245 };
+
+      const map = new google.maps.Map(document.getElementById('mapAbout'), {
+        center: empresa,
+        zoom: 15
+      });
+
+      // Marcador de la empresa
+      const marker = new google.maps.Marker({
+        position: empresa,
+        map: map,
+        title: 'FoodNear - Oficinas Centrales',
+        icon: {
+          url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+        }
+      });
+
+      // InfoWindow con datos de la empresa
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="padding:.5rem; max-width:200px;">
+            <strong style="color:#e63946;">🍔 Foodini</strong><br>
+            <span style="font-size:.85rem;">Av. Tecnológico 1234</span><br>
+            <span style="font-size:.85rem;">Ciudad Juárez, Chih.</span><br>
+            <span style="font-size:.85rem;">📱 (656) 123-4567</span>
+          </div>
+        `
+      });
+
+      // Abrir infowindow automáticamente
+      infoWindow.open(map, marker);
+      marker.addListener('click', () => infoWindow.open(map, marker));
+    }
+  </script>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBQlKigFzmF_abS9RLIb1BzIQHJgy0ziy8&callback=initMapAbout" async defer></script>
+
+</body>
+</html>
